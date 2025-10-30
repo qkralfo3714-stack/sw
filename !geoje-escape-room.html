@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌊 거제를 지켜라!</title>
+    <style>
+        /* 요청하신 둥근모꼴 폰트 적용 */
+        @font-face {
+            font-family: 'RoundedFixedsys';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-display: swap;
+        }
+
+        /* 기본 스타일 */
+        body {
+            font-family: 'RoundedFixedsys', sans-serif;
+            background-color: #f0f8ff; /* 연한 하늘색 배경 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333;
+            text-align: center;
+        }
+
+        /* 게임 컨테이너 */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            /* [수정] DALL-E 3로 생성된 그림 배경 이미지 URL로 변경 */
+            background-image: url('https://user-images.githubusercontent.com/12964923/276709848-31682703-a189-4b2a-8c44-325f163836a0.png'); /* 시작 화면: 거제 섬 전경 */
+            background-size: cover;
+            background-position: center;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 5px solid #b3e5fc;
+            transition: background-image 0.5s ease-in-out; /* 배경 전환 애니메이션 */
+        }
+
+        /* 각 스테이지 공통 스타일 */
+        .stage {
+            display: none; /* JS로 제어하기 위해 기본 숨김 */
+            animation: fadeIn 0.5s ease-in-out;
+            background-color: rgba(255, 255, 255, 0.92); /* 반투명 흰색 배경 유지 */
+            border-radius: 15px;
+            padding: 1.5rem;
+        }
+
+        /* 시작 화면은 처음부터 보이도록 설정 */
+        #start-screen {
+            display: block;
+        }
+
+        /* 헤더 스타일 */
+        h1 {
+            color: #0277bd;
+            font-size: 2.5rem;
+            margin-top: 0;
+        }
+        h2 {
+            color: #00695c;
+            font-size: 2rem;
+            border-bottom: 3px dashed #4db6ac;
+            padding-bottom: 10px;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* 버튼 스타일 */
+        button {
+            font-family: 'RoundedFixedsys', sans-serif;
+            background-color: #4CAF50; /* 초록색 */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            box-shadow: 0 4px #388e3c;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(2px);
+            box-shadow: 0 2px #388e3c;
+        }
+        
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        /* 입력창 스타일 */
+        input[type="text"] {
+            font-family: 'RoundedFixedsys', sans-serif;
+            font-size: 1.1rem;
+            padding: 10px;
+            border: 3px solid #ccc;
+            border-radius: 8px;
+            margin: 0 5px;
+            text-align: center;
+        }
+
+        /* 메시지 박스 스타일 */
+        #message-box {
+            font-size: 1.1rem;
+            min-height: 1.5em; /* 메시지가 없을 때도 공간 차지 */
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .message-success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 2px solid #c3e6cb;
+        }
+
+        .message-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 2px solid #f5c6cb;
+            animation: shake 0.3s;
+        }
+
+        /* --- 스테이지 1: 분리수거 --- */
+        #trash-items {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+        .trash {
+            font-size: 3.5rem; /* 이모지로 아이템 표현 */
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .trash:hover {
+            transform: scale(1.2);
+        }
+        #recycling-bins {
+            display: none; /* 클릭 시 JS로 표시 */
+            margin-top: 15px;
+            padding: 15px;
+            background: #fafafa;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+        }
+        .bin-btn {
+            background-color: #f57c00; /* 주황색 */
+            box-shadow: 0 4px #e65100;
+        }
+        .bin-btn:hover { background-color: #ef6c00; transform: translateY(2px); box-shadow: 0 2px #e65100; }
+        .bin-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* [수정] 힌트 버튼 스타일 */
+        .hint-btn {
+            background-color: #ffc107; /* 노란색 */
+            color: #333;
+            font-size: 0.9rem;
+            padding: 8px 15px;
+            box-shadow: 0 4px #ffa000;
+        }
+        .hint-btn:hover { background-color: #ffb300; transform: translateY(2px); box-shadow: 0 2px #ffa000; }
+        .hint-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* --- [수정] 스테이지 2: 숲 퀴즈 --- */
+        #eco-quiz-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .eco-quiz-btn {
+            background-color: #81c784; /* 숲 색 */
+            box-shadow: 0 4px #558b2f;
+            font-size: 1rem;
+            width: 45%;
+            min-height: 60px;
+            padding: 10px;
+        }
+        .eco-quiz-btn:hover { background-color: #66bb6a; transform: translateY(2px); box-shadow: 0 2px #558b2f; }
+        .eco-quiz-btn:active { transform: translateY(4px); box-shadow: none; }
+        
+        .eco-quiz-btn.found {
+            background-color: #e57373; /* 찾으면 빨간색 */
+            color: #fff;
+            box-shadow: 0 4px #c62828;
+            cursor: not-allowed;
+        }
+        .eco-quiz-btn:disabled {
+             opacity: 0.7;
+        }
+
+
+        /* --- 스테이지 3: 비밀번호 --- */
+        #password-hints {
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            text-align: left;
+            width: fit-content;
+            margin: 20px auto;
+        }
+        #password-hints p {
+            margin: 8px 0;
+            font-size: 1rem;
+        }
+        /* [수정] 스테이지 3 힌트 숫자 강조 */
+        #password-hints b {
+            color: #d32f2f; /* 빨간색 */
+            font-size: 1.5rem;
+            padding: 0 5px;
+        }
+        #password-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        #password-input input {
+            width: 40px;
+            height: 40px;
+            font-size: 2rem;
+            padding: 5px;
+        }
+        
+        /* 엔딩 화면 */
+        #end-screen h1 { color: #fbc02d; }
+        #end-screen p:first-of-type {
+            font-size: 5rem;
+            margin: 10px 0;
+        }
+        #restart-btn {
+            background-color: #1976d2; /* 파란색 */
+            box-shadow: 0 4px #0d47a1;
+        }
+        #restart-btn:hover { background-color: #1565c0; transform: translateY(2px); box-shadow: 0 2px #0d47a1; }
+        #restart-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* 애니메이션 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 공용 메시지 박스 --><p id="message-box"></p>
+
+        <!-- 0. 시작 화면 --><div id="start-screen" class="stage">
+            <h1>🌊 거제를 지켜라! 🐬</h1>
+            <p>당신은 '거제 생태환경 지킴이' 신입 대원입니다. 🫡</p>
+            <p>위기에 빠진 친구들을 구출할 준비가 되었나요?</p>
+            <button id="start-btn">임무 시작하기! 🔥</button>
+        </div>
+
+        <!-- 1. 스테이지 1: 학동 몽돌해변 --><div id="stage-1" class="stage">
+            <h2>🏖️ 1단계: 학동 몽돌해변</h2>
+            <p>으악! 몽돌해변이 쓰레기로 뒤덮였어요! 😱</p>
+            
+            <!-- 퍼즐 1: 분리수거 --><div id="trash-items">
+                <!-- 이모지를 쓰레기 아이템으로 사용 --><span class="trash" data-type="plastic" data-name="플라스틱병">🍾</span>
+                <span class="trash" data-type="can" data-name="음료 캔">🥫</span>
+                <span class="trash" data-type="general" data-name="휴지">🛍️</span>
+            </div>
+            
+            <div id="recycling-bins">
+                <p id="selected-trash-text"></p>
+                <button class="bin-btn" data-bin="plastic">♻️ 플라스틱</button>
+                <button class="bin-btn" data-bin="can">♻️ 캔</button>
+                <button class="bin-btn" data-bin="general">🗑️ 일반 쓰레기</button>
+            </div>
+            
+            <!-- 퍼즐 2: 단어 퀴즈 (처음엔 숨김) --><div id="quiz-1" style="display: none;">
+                <p>✨ 깨끗해졌어요! ...앗, 저기 쪽지가? 📜</p>
+                <p>"바다 친구들이 아파하고 있어...<br>가장 큰 문제는 (00 00)이야."</p>
+                <input type="text" id="quiz-1-answer" placeholder="정답 입력">
+                <button id="quiz-1-submit">정답 확인</button>
+                <br>
+                <!-- [수정] 스테이지 1 힌트 버튼 --><button id="quiz-1-hint-btn" class="hint-btn" style="margin-top: 10px;">💡 힌트 보기</button>
+                <p id="quiz-1-hint-text" style="display: none; font-size: 0.9rem; color: #555; margin-top: 10px;">
+                    어부들이 잃어버렸지만...<br>바다에 남아 생물들을 위협하는 그것! '<b>유</b>'령 '<b>그</b>'물
+                </p>
+            </div>
+        </div>
+
+        <!-- [수정] 2. 스테이지 2: 구조라 숲 (퀴즈로 변경) --><div id="stage-2" class="stage">
+            <!-- [수정] 숲 이모지 추가 --><h2>🌳🌲 2단계: 구조라 숲 🌲🌳</h2>
+            <p>숲이 이상한 식물로 뒤덮여 있어요. 🌿<br>팔색조 '거제' 🐦를 찾아주세요!</p>
+            
+            <!-- 퍼즐 1: 숲 퀴즈 --><div id="eco-quiz-1">
+                <p>숲을 아프게 하는 행동 4가지를<br>모두 찾아 클릭하세요! 🕵️‍♀️</p>
+                <div id="eco-quiz-container">
+                    <button class="eco-quiz-btn" data-correct="true">🐿️ 도토리 주워가기</button>
+                    <button class="eco-quiz-btn" data-correct="false">🚮 쓰레기 되가져가기</button>
+                    <button class="eco-quiz-btn" data-correct="true">🌿 낯선 식물 심기</button>
+                    <button class="eco-quiz-btn" data-correct="false">💧 계곡 물에 발 담그기</button>
+                    <button class="eco-quiz-btn" data-correct="true">🎶 음악 크게 틀기</button>
+                    <button class="eco-quiz-btn" data-correct="true">🦋 야생동물 잡기</button>
+                </div>
+                <p>찾은 개수: <span id="eco-quiz-found-count">0</span> / 4</p>
+            </div>
+            
+            <!-- 퍼즐 2: 선택 퀴즈 (처음엔 숨김) --><div id="quiz-2" style="display: none;">
+                <p>숲이 건강해졌어요! 둥지를 찾았네요!</p>
+                <p>🐦 "팔색조 '거제'가 먹지 <strong>않는</strong> 것은?"</p>
+                <button id="quiz-2-choice-a">(A) 지렁이 🐛</button>
+                <button id="quiz-2-choice-b">(B) 플라스틱 조각 ❌</button>
+                <button id="quiz-2-choice-c">(C) 딱정벌레 🐞</button>
+            </div>
+        </div>
+
+        <!-- 3. 스테이지 3: 지심도 앞바다 --><div id="stage-3" class="stage">
+            <h2>🌊 3단계: 지심도 앞바다</h2>
+            <p>돌고래 '고래' 🐬가 유령 그물에 갇혔어요! 😭</p>
+            <p>자물쇠 🔒를 풀어 구해주세요! (4자리)</p>
+            <!-- [수정] 스테이지 3 힌트 설명 --><p style="font-size: 0.9rem; color: #555;">(힌트: 각 문장의 <b>굵은 숫자</b>들을 순서대로 확인해 보세요!)</p>
+            
+            <!-- 퍼즐: 4자리 비밀번호 --><div id="password-hints">
+                <p>1. 일회용 컵 썩는 시간: 약 <b>2</b>0년</p>
+                <p>2. 플라스틱병 썩는 시간: 약 <b>5</b>00년 이상</p>
+                <p>3. 바다에 버려진 담배꽁초 필터는 유해 물질을 <b>0</b>으로 만들지 못합니다.</p>
+                <p>4. 우리는 <b>1</b>회용품 사용을 줄여야 합니다.</p>
+            </div>
+            
+            <div id="password-input">
+                <input type="text" id="pw-1" maxlength="1" size="1">
+                <input type="text" id="pw-2" maxlength="1" size="1">
+                <input type="text" id="pw-3" maxlength="1" size="1">
+                <input type="text" id="pw-4" maxlength="1" size="1">
+            </div>
+            <button id="password-submit">자물쇠 풀기!</button>
+        </div>
+
+        <!-- 4. 엔딩 화면 --><div id="end-screen" class="stage">
+            <h1>🎉 구출 성공! 🎉</h1>
+            <p>🐬🐦</p>
+            <p>"고마워, 신입 대원!<br>우리의 거제를 함께 지켜줘!"</p>
+            <button id="restart-btn">다시하기 🔁</button>
+        </div>
+
+    </div> <!-- .container end --><script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 전역 변수 및 상태 관리 ---
+            const allStages = document.querySelectorAll('.stage');
+            const messageBox = document.getElementById('message-box');
+            
+            let currentTrashElement = null; // 스테이지 1: 현재 선택한 쓰레기
+            let currentTrashType = '';      // 스테이지 1: 현재 선택한 쓰레기 타입
+            let trashCleanedCount = 0;      // 스테이지 1: 청소한 쓰레기 개수
+            
+            // [수정] 스테이지 2: 숲 퀴즈 상태
+            let ecoQuizFoundCount = 0;
+            const ecoQuizCorrectTotal = 4; // 정답 개수
+
+            // --- DOM 요소 가져오기 ---
+            const container = document.querySelector('.container');
+            const startBtn = document.getElementById('start-btn');
+            
+            // 스테이지 1 요소
+            const trashItems = document.querySelectorAll('.trash');
+            const recyclingBins = document.getElementById('recycling-bins');
+            const selectedTrashText = document.getElementById('selected-trash-text');
+            const binButtons = document.querySelectorAll('.bin-btn');
+            const quiz1 = document.getElementById('quiz-1');
+            const quiz1Answer = document.getElementById('quiz-1-answer');
+            const quiz1Submit = document.getElementById('quiz-1-submit');
+            const quiz1HintBtn = document.getElementById('quiz-1-hint-btn');
+            const quiz1HintText = document.getElementById('quiz-1-hint-text');
+
+            // [수정] 스테이지 2 요소
+            const ecoQuizBtns = document.querySelectorAll('.eco-quiz-btn');
+            const ecoQuizFoundCountSpan = document.getElementById('eco-quiz-found-count');
+            const quiz2 = document.getElementById('quiz-2');
+            const quiz2ChoiceA = document.getElementById('quiz-2-choice-a');
+            const quiz2ChoiceB = document.getElementById('quiz-2-choice-b');
+            const quiz2ChoiceC = document.getElementById('quiz-2-choice-c');
+            
+            // 스테이지 3 요소
+            const pwInputs = [
+                document.getElementById('pw-1'),
+                document.getElementById('pw-2'),
+                document.getElementById('pw-3'),
+                document.getElementById('pw-4')
+            ];
+            const passwordSubmit = document.getElementById('password-submit');
+            
+            // 엔딩 요소
+            const restartBtn = document.getElementById('restart-btn');
+
+            // --- 헬퍼 함수 ---
+
+            /**
+             * 특정 스테이지를 보여주는 함수
+             * @param {string} stageId - 보여줄 스테이지의 ID (예: 'stage-1')
+             */
+            function showStage(stageId) {
+                allStages.forEach(stage => {
+                    stage.style.display = 'none';
+                });
+                const nextStage = document.getElementById(stageId);
+                if (nextStage) {
+                    nextStage.style.display = 'block';
+                }
+                clearMessage(); // 스테이지 이동 시 메시지 초기화
+
+                // [수정] 스테이지별 배경 이미지 URL을 DALL-E 3 생성 그림으로 변경
+                let bgImageUrl = 'https://user-images.githubusercontent.com/12964923/276709848-31682703-a189-4b2a-8c44-325f163836a0.png'; // 시작 화면: 거제 섬 전경
+                switch(stageId) {
+                    case 'stage-1':
+                        bgImageUrl = 'https://user-images.githubusercontent.com/12964923/276709849-0d12e434-d02f-48d1-9494-b78f4675e2b0.png'; // 몽돌해변
+                        break;
+                    case 'stage-2':
+                        bgImageUrl = 'https://user-images.githubusercontent.com/12964923/276709851-4099d0e7-8b63-4676-9d33-1d01f802d08a.png'; // 구조라 숲
+                        break;
+                    case 'stage-3':
+                        bgImageUrl = 'https://user-images.githubusercontent.com/12964923/276709854-c8c83a15-3733-4f93-8408-2c262a046896.png'; // 지심도 바다
+                        break;
+                    case 'end-screen':
+                        bgImageUrl = 'https://user-images.githubusercontent.com/12964923/276709855-32e67a0e-436d-4ee8-b3d2-c20e4056157f.png'; // 엔딩 (깨끗해진 바다)
+                        break;
+                    case 'start-screen':
+                    default:
+                        bgImageUrl = 'https://user-images.githubusercontent.com/12964923/276709848-31682703-a189-4b2a-8c44-325f163836a0.png'; // 시작 화면: 거제 섬 전경
+                        break;
+                }
+                container.style.backgroundImage = `url('${bgImageUrl}')`;
+            }
+
+            /**
+             * 사용자에게 메시지를 보여주는 함수 (alert() 대체)
+             * @param {string} text - 보여줄 메시지
+             * @param {boolean} isError - 에러 메시지 여부 (true: 빨간색, false: 초록색)
+             */
+            function showMessage(text, isError = false) {
+                messageBox.textContent = text;
+                if (isError) {
+                    messageBox.className = 'message-error';
+                } else {
+                    messageBox.className = 'message-success';
+                }
+            }
+            
+            /**
+             * 메시지 박스를 비우는 함수
+             */
+            function clearMessage() {
+                messageBox.textContent = '';
+                messageBox.className = '';
+            }
+
+            /**
+             * 게임을 초기 상태로 리셋하는 함수
+             */
+            function resetGame() {
+                // 스테이지 1 리셋
+                trashCleanedCount = 0;
+                currentTrashElement = null;
+                currentTrashType = '';
+                trashItems.forEach(item => { item.style.display = 'inline-block'; });
+                recyclingBins.style.display = 'none';
+                quiz1.style.display = 'none';
+                quiz1Answer.value = '';
+                quiz1HintText.style.display = 'none';
+
+                // [수정] 스테이지 2 리셋
+                ecoQuizFoundCount = 0;
+                ecoQuizFoundCountSpan.textContent = '0';
+                ecoQuizBtns.forEach(btn => {
+                    btn.classList.remove('found');
+                    btn.disabled = false;
+                });
+                quiz2.style.display = 'none';
+                
+                // 스테이지 3 리셋
+                pwInputs.forEach(input => { input.value = ''; });
+
+                // 시작 화면으로 이동
+                showStage('start-screen');
+            }
+
+            // --- 이벤트 리스너 ---
+
+            // 게임 시작
+            startBtn.addEventListener('click', () => showStage('stage-1'));
+
+            // --- 스테이지 1: 분리수거 ---
+            
+            // 1. 쓰레기 아이템 클릭
+            trashItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    currentTrashElement = e.target;
+                    currentTrashType = e.target.dataset.type;
+                    const trashName = e.target.dataset.name;
+                    
+                    selectedTrashText.textContent = `"${trashName}" ${e.target.textContent} (을)를 어디에 버릴까요?`;
+                    recyclingBins.style.display = 'block';
+                    clearMessage();
+                });
+            });
+
+            // 2. 분리수거 통 버튼 클릭
+            binButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const selectedBin = e.target.dataset.bin;
+
+                    if (selectedBin === currentTrashType) {
+                        showMessage('정답! ✨ 깨끗해졌어요.', false);
+                        currentTrashElement.style.display = 'none'; // 쓰레기 숨기기
+                        recyclingBins.style.display = 'none'; // 통 숨기기
+                        trashCleanedCount++;
+                        
+                        // 3. 모든 쓰레기를 치웠는지 확인
+                        if (trashCleanedCount === trashItems.length) {
+                            setTimeout(() => {
+                                quiz1.style.display = 'block';
+                                clearMessage();
+                            }, 1000);
+                        }
+                    } else {
+                        showMessage('땡! 😥 그곳이 아니에요. 다시 생각해보세요.', true);
+                    }
+                });
+            });
+
+            // 4. 단어 퀴즈 정답 제출
+            quiz1Submit.addEventListener('click', () => {
+                const answer = quiz1Answer.value.trim().replace(/\s/g, ''); // 공백 제거
+                if (answer === '유령그물') {
+                    showMessage('정답! 🥳 다음 단계로 이동합니다.', false);
+                    setTimeout(() => showStage('stage-2'), 1500);
+                } else {
+                    showMessage('틀렸어요... 힌트를 다시 보세요! 🧐', true);
+                }
+            });
+
+            // 퀴즈 1 힌트 버튼
+            quiz1HintBtn.addEventListener('click', () => {
+                quiz1HintText.style.display = 'block';
+            });
+
+            // --- [수정] 스테이지 2: 숲 퀴즈 ---
+            
+            // 1. 숲 퀴즈 버튼 클릭
+            ecoQuizBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const target = e.target;
+                    
+                    // 이미 찾은 것은 클릭 방지
+                    if (target.classList.contains('found')) return;
+
+                    const isCorrect = target.dataset.correct === 'true';
+
+                    if (isCorrect) {
+                        target.classList.add('found');
+                        target.disabled = true;
+                        ecoQuizFoundCount++;
+                        ecoQuizFoundCountSpan.textContent = ecoQuizFoundCount;
+                        showMessage(`찾았다! (${ecoQuizFoundCount}/${ecoQuizCorrectTotal})`, false);
+
+                        // 2. 4가지를 모두 찾았는지 확인
+                        if (ecoQuizFoundCount === ecoQuizCorrectTotal) {
+                            setTimeout(() => {
+                                showMessage('숲을 아프게 하는 행동을 모두 찾았어요! 🌿', false);
+                                document.getElementById('eco-quiz-1').style.display = 'none';
+                                quiz2.style.display = 'block';
+                            }, 1000);
+                        }
+                    } else {
+                        showMessage('이건 괜찮은 행동이에요! 😊', true);
+                    }
+                });
+            });
+
+            // 3. 선택 퀴즈 (팔색조 먹이)
+            quiz2ChoiceA.addEventListener('click', () => {
+                showMessage('지렁이는 팔색조의 맛있는 식사예요. 😋', true);
+            });
+            quiz2ChoiceC.addEventListener('click', () => {
+                showMessage('딱정벌레도 좋아해요! 🐞', true);
+            });
+            quiz2ChoiceB.addEventListener('click', () => {
+                showMessage('정답! 😥 새들이 플라스틱을 먹이로 오해한대요.', false);
+                setTimeout(() => showStage('stage-3'), 1500);
+            });
+
+            // --- 스테이지 3: 비밀번호 ---
+
+            // 1. 비밀번호 입력 시 자동 탭 이동
+            pwInputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    // 글자 입력 시 다음 칸으로 이동
+                    if (e.target.value.length === 1 && index < pwInputs.length - 1) {
+                        pwInputs[index + 1].focus();
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    // 백스페이스 입력 시 이전 칸으로 이동
+                    if (e.key === 'Backspace' && e.target.value.length === 0 && index > 0) {
+                        pwInputs[index - 1].focus();
+                    }
+                });
+            });
+
+            // 2. 자물쇠 풀기 버튼 클릭
+            passwordSubmit.addEventListener('click', () => {
+                const pw = pwInputs[0].value + pwInputs[1].value + pwInputs[2].value + pwInputs[3].value;
+                
+                if (pw === '2501') {
+                    showMessage('구출 성공! 🔓 돌고래가 자유로워졌어요! 🐬', false);
+                    setTimeout(() => showStage('end-screen'), 1500);
+                } else {
+                    showMessage('비밀번호가 틀려요! 힌트를 다시 보세요! 🔢', true);
+                }
+            });
+
+            // --- 엔딩: 다시하기 ---
+            restartBtn.addEventListener('click', resetGame);
+
+        });
+    </script>
+
+</body>
+</html>
+
